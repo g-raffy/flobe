@@ -1,5 +1,6 @@
 program diag
-#ifdef USE_MAGMA_GPU
+
+#ifdef USE_MAGMA_DSYEVD_GPU 
    use magma
 !    use magma_param
 !    use magma_dfortran
@@ -55,27 +56,46 @@ subroutine test_dsyev(ndim)
     real(dp), allocatable :: work(:)
     real(dp), allocatable :: amat(:,:)
     integer :: i, info, j, lwork
-    integer :: ldda
-#ifdef USE_MAGMA_GPU
+    integer :: lda
+#ifdef USE_MAGMA_DSYEVD_GPU
     magma_devptr_t :: d_amat
     magma_devptr_t :: queue  !! really a CPU pointer
     real(dp), allocatable :: wa(:,:)
+#endif
+
+#if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
+    integer :: liwork
     integer, allocatable :: iwork(:)
     integer :: nb
 #endif
     real(dp) :: x
+    logical :: compute_eigenvectors = .TRUE.
+    character :: jobz
+
+    if (compute_eigenvectors) then
+        jobz = 'v' ! novec
+    else
+        jobz = 'n' ! vec
+    endif
 
     allocate(evalues(ndim))
     evalues = 0.0_dp
 
-#ifdef USE_MAGMA_GPU
-    ! If JOBZ = MagmaVec and N > 1, LWORK >= max( 2*N + N*NB, 1 + 6*N + 2*N**2 ).
-! int lwork = max(2 * DIM + DIM * magma_get_dsytrd_nb(DIM), 1 + 6 * DIM + 2 * int(pow(DIM, 2)));
+#if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
+    ! NB can be obtained through magma_get_dsytrd_nb(N).
     ! nb = magma_get_dsytrd_nb(ndim)
+    ! magma_get_dsytrd_nb doesn't seem to exist so I set an arbitrary value here
     nb = 100
     write(6,*) 'nb = ', nb
-    lwork = max(2 * ndim + ndim * nb, 1 + 6 * ndim + 2 * ndim * ndim)
-    ldda = ceiling(real(ndim)/32)*32
+
+    if (compute_eigenvectors) then
+        ! If JOBZ = MagmaVec and N > 1, LWORK >= max( 2*N + N*NB, 1 + 6*N + 2*N**2 ).
+        ! int lwork = max(2 * DIM + DIM * magma_get_dsytrd_nb(DIM), 1 + 6 * DIM + 2 * int(pow(DIM, 2)));
+        lwork = max(2 * ndim + ndim * nb, 1 + 6 * ndim + 2 * ndim * ndim)
+    else
+        ! If JOBZ = MagmaNoVec and N > 1, LWORK >= 2*N + N*NB.
+        lwork = 2 * ndim + ndim * nb
+    endif
 #else
     lwork = 3*ndim
 #endif
@@ -93,11 +113,15 @@ subroutine test_dsyev(ndim)
         end do
     end do
 
-call cpu_time(tstart)
+    call cpu_time(tstart)
 
-#ifdef USE_MAGMA_GPU
+    lda = ceiling(real(ndim)/32)*32
+#if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
+#endif
+
+#ifdef USE_MAGMA_DSYEVD_GPU
     !! allocate GPU memory
-    info = magmaf_dmalloc( d_amat, ldda*ndim )
+    info = magmaf_dmalloc( d_amat, lda*ndim )
     if (d_amat == 0) then
         print "(a)", "failed to allocate d_amat"
         return
@@ -105,7 +129,7 @@ call cpu_time(tstart)
 
     ! copy A to dA
     call magmaf_queue_create( 0, queue )
-    call magmaf_dsetmatrix( ndim, ndim, amat, ndim, d_amat, ldda, queue )
+    call magmaf_dsetmatrix( ndim, ndim, amat, ndim, d_amat, lda, queue )
     call magmaf_queue_destroy( queue )
 
     ! subroutine magmaf_dsyevd_gpu( jobz, uplo, n, dA, ldda, w, wA, ldwa, work, lwork, iwork,  &
@@ -162,11 +186,28 @@ call cpu_time(tstart)
     !     < 0: if INFO = -i, the i-th argument had an illegal value
     !     > 0: if INFO = i and JOBZ = MagmaNoVec, then the algorithm failed to converge; i off-diagonal elements of an intermediate tridiagonal form did not converge to zero; if INFO = i and JOBZ = MagmaVec, then the algorithm failed to compute an eigenvalue while working on the submatrix lying in rows and columns INFO/(N+1) through mod(INFO,N+1).
 
-    allocate(wa(ldda, ndim))
-    allocate(iwork(1))
+    allocate(wa(lda, ndim))
+#endif
 
-    call magmaf_dsyevd_gpu ('n', 'u', ndim, d_amat, ldda, evalues, wa, ldda, work, lwork, iwork, 1, info)
-#else
+#if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
+    if (compute_eigenvectors) then
+        liwork = 5 * ndim + 3
+    else
+        liwork = 1
+    endif
+    allocate(iwork(liwork))
+#endif
+
+#if defined(USE_MAGMA_DSYEVD_GPU)
+    call magmaf_dsyevd_gpu (jobz, 'u', ndim, d_amat, lda, evalues, wa, lda, work, lwork, iwork, liwork, info)
+#endif
+
+#ifdef USE_MAGMA_DSYEVD
+    call magmaf_dsyevd (jobz, 'u', ndim, amat, lda, evalues, work, lwork, iwork, liwork, info)
+#endif
+
+#ifdef USE_DSYEV
+
     ! subroutine dsyev   (       character       JOBZ,
     !            character       UPLO,
     !            integer         N,
@@ -177,7 +218,7 @@ call cpu_time(tstart)
     !            integer         LWORK,
     !            integer         INFO 
     !    )               
-    call dsyev ('n','u',ndim,amat,ndim,evalues,work,lwork,info)
+    call dsyev (jobz,'u',ndim,amat,ndim,evalues,work,lwork,info)
 #endif
     call cpu_time(tstop)
     write(6,*) 'info = ', info
