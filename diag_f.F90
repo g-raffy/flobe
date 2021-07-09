@@ -1,11 +1,5 @@
 program diag
 
-#ifdef USE_MAGMA_DSYEVD_GPU 
-   use magma
-!    use magma_param
-!    use magma_dfortran
-!    use magmablas_dfortran
-#endif
 implicit none
 
 
@@ -47,15 +41,25 @@ end if
 stop
 end program diag
 
-subroutine test_dsyev(ndim)
-    integer, intent(in) :: ndim
+module mod_diag
+    contains
+subroutine diagonalize(amat, ndim, evalues, info)
+#ifdef USE_MAGMA_DSYEVD_GPU 
+    use magma
+ !    use magma_param
+ !    use magma_dfortran
+ !    use magmablas_dfortran
+#endif
+ 
+    implicit none
     integer, parameter :: dp = kind(1.0d0)
-    real :: tstart, tstop
-
-    real(dp), allocatable :: evalues(:)
-    real(dp), allocatable :: work(:)
     real(dp), allocatable :: amat(:,:)
-    integer :: i, info, j, lwork
+    integer, intent(in) :: ndim
+    real(dp), allocatable :: evalues(:)
+    integer, intent(out) :: info
+
+    real(dp), allocatable :: work(:)
+    integer :: lwork
     integer :: lda
 #ifdef USE_MAGMA_DSYEVD_GPU
     magma_devptr_t :: d_amat
@@ -68,7 +72,6 @@ subroutine test_dsyev(ndim)
     integer, allocatable :: iwork(:)
     integer :: nb
 #endif
-    real(dp) :: x
     logical :: compute_eigenvectors = .TRUE.
     character :: jobz
 
@@ -77,9 +80,6 @@ subroutine test_dsyev(ndim)
     else
         jobz = 'n' ! vec
     endif
-
-    allocate(evalues(ndim))
-    evalues = 0.0_dp
 
 #if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
     ! NB can be obtained through magma_get_dsytrd_nb(N).
@@ -100,25 +100,12 @@ subroutine test_dsyev(ndim)
     lwork = 3*ndim
 #endif
     allocate(work(lwork))
-    
-    allocate(amat(ndim, ndim))
 
-    !call random_number(amat)
-    !amat = 0.5_dp*(amat + transpose(amat))
-    do j = 1, ndim
-        do i = 1, j
-           call random_number(x)
-           amat(i,j) = x
-           amat(j,i) = x
-        end do
-    end do
-
-    call cpu_time(tstart)
 
     lda = ceiling(real(ndim)/32)*32
 #if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
 #endif
-
+    
 #ifdef USE_MAGMA_DSYEVD_GPU
     !! allocate GPU memory
     info = magmaf_dmalloc( d_amat, lda*ndim )
@@ -220,6 +207,43 @@ subroutine test_dsyev(ndim)
     !    )               
     call dsyev (jobz,'u',ndim,amat,ndim,evalues,work,lwork,info)
 #endif
+
+    deallocate(work)
+
+end subroutine diagonalize
+
+endmodule mod_diag
+
+subroutine test_dsyev(ndim)
+    use mod_diag, only: diagonalize
+    implicit none
+    integer, intent(in) :: ndim
+    integer, parameter :: dp = kind(1.0d0)
+    real :: tstart, tstop
+
+    real(dp), allocatable :: evalues(:)
+    real(dp), allocatable :: amat(:,:)
+    real(dp) :: x
+    integer :: i, j, info
+    allocate(amat(ndim, ndim))
+
+    !call random_number(amat)
+    !amat = 0.5_dp*(amat + transpose(amat))
+    do j = 1, ndim
+        do i = 1, j
+           call random_number(x)
+           amat(i,j) = x
+           amat(j,i) = x
+        end do
+    end do
+
+    allocate(evalues(ndim))
+    evalues = 0.0_dp
+
+    call cpu_time(tstart)
+
+    call diagonalize(amat, ndim, evalues, info)
+
     call cpu_time(tstop)
     write(6,*) 'info = ', info
     
@@ -227,6 +251,6 @@ subroutine test_dsyev(ndim)
     write(6,'(10f15.7)') evalues(1:10)
     write(6,'(10f15.7)') evalues(ndim-9:ndim)
     
-    deallocate(evalues,work,amat)
+    deallocate(evalues, amat)
     end
      
