@@ -43,8 +43,15 @@ end program diag
 
 module mod_diag
     contains
+    !---------------------------------------------------------!
+    !Calls the LAPACK diagonalization subroutine DSYEV        !
+    !input:  amat(ndim,ndim) = real symmetric matrix to be diagonalized!
+    !            ndim  = size of amat                               !
+    !output: amat(ndim,ndim) = orthonormal eigenvectors of amat           !
+    !        eig(ndim) = eigenvalues of amat in ascending order     !
+    !---------------------------------------------------------!
 subroutine diagonalize(amat, ndim, evalues, info)
-#ifdef USE_MAGMA_DSYEVD_GPU 
+#if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
     use magma
  !    use magma_param
  !    use magma_dfortran
@@ -82,6 +89,10 @@ subroutine diagonalize(amat, ndim, evalues, info)
     endif
 
 #if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
+    call magmaf_init()
+#endif
+    
+#if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
     ! NB can be obtained through magma_get_dsytrd_nb(N).
     ! nb = magma_get_dsytrd_nb(ndim)
     ! magma_get_dsytrd_nb doesn't seem to exist so I set an arbitrary value here
@@ -101,12 +112,9 @@ subroutine diagonalize(amat, ndim, evalues, info)
 #endif
     allocate(work(lwork))
 
-
     lda = ceiling(real(ndim)/32)*32
-#if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
-#endif
     
-#ifdef USE_MAGMA_DSYEVD_GPU
+#if defined(USE_MAGMA_DSYEVD_GPU)
     !! allocate GPU memory
     info = magmaf_dmalloc( d_amat, lda*ndim )
     if (d_amat == 0) then
@@ -221,10 +229,24 @@ subroutine test_dsyev(ndim)
     integer, parameter :: dp = kind(1.0d0)
     real :: tstart, tstop
 
+    INTEGER :: c1,c2,cr,cm,s
+    REAL :: a_diff, diff, rate
+
     real(dp), allocatable :: evalues(:)
     real(dp), allocatable :: amat(:,:)
     real(dp) :: x
     integer :: i, j, info
+
+    ! First initialize the system_clock
+    CALL system_clock(count_rate=cr)
+    CALL system_clock(count_max=cm)
+    rate = REAL(cr)
+    WRITE(*,*) "system_clock rate ",rate
+
+    diff = 0.0
+    a_diff = 0.0
+    s = 0
+
     allocate(amat(ndim, ndim))
 
     !call random_number(amat)
@@ -241,16 +263,28 @@ subroutine test_dsyev(ndim)
     evalues = 0.0_dp
 
     call cpu_time(tstart)
+    call system_clock(c1)
 
     call diagonalize(amat, ndim, evalues, info)
 
     call cpu_time(tstop)
+    call system_clock(c2)
+    if ( (c2 - c1)/rate < (tstop - tstart) ) s = s + 1
+    diff = (c2 - c1)/rate - (tstop - tstart) + diff
+    a_diff = ABS((c2 - c1)/rate - (tstop - tstart)) + a_diff
+
     write(6,*) 'info = ', info
     
     write(6,'("Time taken by dsyev for matrix size ",i8," was ",f10.2," seconds")') ndim, tstop-tstart
     write(6,'(10f15.7)') evalues(1:10)
     write(6,'(10f15.7)') evalues(ndim-9:ndim)
     
+    WRITE(*,*) "system_clock : ",(c2 - c1)/rate
+    WRITE(*,*) "cpu_time     : ",(tstop - tstart)
+    WRITE(*,*) "sc < ct      : ",s
+    WRITE(*,*) "mean diff    : ",diff
+    WRITE(*,*) "abs mean diff: ",a_diff
+
     deallocate(evalues, amat)
     end
      
