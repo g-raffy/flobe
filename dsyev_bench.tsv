@@ -1,0 +1,8 @@
+# config	num_cores	num_gpu	matrix_size	cpu(s)
+mkl	1	0	8000	177.52
+mkl	8	0	32000	19106.00
+gpu	1	1	8000	7.58
+gpu	1	1	12000	16.46
+gpu	1	1	16000	30.13
+gpu	1	1	32000	153.27
+
