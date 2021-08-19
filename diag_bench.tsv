@@ -1,0 +1,35 @@
+# config	num_cores	num_gpu	matrix_size	cpu(s)	gpu_mem_stage1(MiB)	gpu_mem_stage2(MiB)
+magma	1	1	1024	1.32
+magma	1	1	2000	1.96
+magma	1	1	3000	2.30
+magma	1	1	4000	3.24
+magma	1	1	5000	4.33
+magma	1	1	6000	5.93
+magma	1	1	7000	7.82
+magma	1	1	7500	8.75
+magma	1	1	8000	9.86
+magma	1	1	9000	12.57
+magma	1	1	10000	15.50
+magma	1	1	12000	22.41	1531
+magma	1	1	14000	30.98	1939	2647
+magma	1	1	16000	39.47
+magma	1	1	20000	68.31	3523	4983
+magma	1	1	24000	103.39	4891	
+magma	1	1	28000	152.47	6507	9377
+magma	1	1	32000	213.18	8369	12121
+magma	1	1	34000		9399	crashes
+magma	1	1	36000		10481	crashes
+magma	1	1	40000		12841	
+magma	1	1	60000		crashes	
+mkl_omp	72	0	4000	4.95
+mkl_omp	72	0	8000	38.00
+mkl_omp	72	0	16000	408.55	273	135
+
+
+
+
+
+
+
+
+
