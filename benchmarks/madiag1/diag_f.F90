@@ -3,40 +3,54 @@ program diag
 implicit none
 
 
-integer :: argc, info, ndim
+integer :: argc, info, ndim, num_loops
 
-character(len=8) :: arg0, arg1
+character(len=8) :: arg0, arg1, arg2
 
 
 call get_command_argument(0,arg0)
 
 argc = command_argument_count()
-if (argc /= 1) then
-    write(6,'("Usage: ",a," NDIM, where NDIM is a positive integer")') trim(arg0);
+if (argc /= 2) then
+    write(6,'("Usage: ",a," NDIM NUM_LOOPS, where NDIM is a positive integer")') trim(arg0);
     stop
 end if
 
 call get_command_argument(1,arg1,status=info)
 if (info /= 0) then
     write(6,'("Error reading argument: info = ",i2)') info
-    write(6,'("Usage: ",a," NDIM, where NDIM is a positive integer")') trim(arg0);
+    write(6,'("Usage: ",a," NDIM NUM_LOOPS, where NDIM is a positive integer")') trim(arg0);
+stop
+end if
+
+call get_command_argument(2,arg2,status=info)
+if (info /= 0) then
+    write(6,'("Error reading argument: info = ",i2)') info
+    write(6,'("Usage: ",a," NDIM NUM_LOOPS, where NDIM is a positive integer")') trim(arg0);
 stop
 end if
 
 read(arg1,*,iostat=info) ndim
 if (info /= 0) then
-    write(6,'("Error converting argument to integer: info = ",i2)') info
-    write(6,'("Usage: ",a," NDIM, where NDIM is a positive integer")') trim(arg0);
+    write(6,'("Error converting ndim argument to integer: info = ",i2)') info
+    write(6,'("Usage: ",a," NDIM NUM_LOOPS, where NDIM is a positive integer")') trim(arg0);
+stop
+end if
+
+read(arg2,*,iostat=info) num_loops
+if (info /= 0) then
+    write(6,'("Error converting num_loops argument to integer: info = ",i2)') info
+    write(6,'("Usage: ",a," NDIM NUM_LOOPS, where NDIM is a positive integer")') trim(arg0);
 stop
 end if
 
 
 if (ndim < 1) then
-    write(6,'("Usage: ",a," NDIM, where NDIM is a positive integer")') trim(arg0);
+    write(6,'("Usage: ",a," NDIM NUM_LOOPS, where NDIM is a positive integer")') trim(arg0);
 stop
 end if
 
-    call test_dsyev(ndim)
+    call test_dsyev(ndim, num_loops)
 
 stop
 end program diag
@@ -216,16 +230,32 @@ subroutine diagonalize(amat, ndim, evalues, info)
     call dsyev (jobz,'u',ndim,amat,ndim,evalues,work,lwork,info)
 #endif
 
+    if (info .ne. 0) then
+        stop 1
+    end if
+
     deallocate(work)
 
 end subroutine diagonalize
 
 endmodule mod_diag
 
-subroutine test_dsyev(ndim)
+subroutine set_random_seed(seed)
+    integer :: seed
+    integer :: seed_array_size
+    INTEGER, ALLOCATABLE :: seed_array (:)
+    CALL RANDOM_SEED (SIZE = seed_array_size)  ! I is set to the size of
+    !                              ! the seed array
+    ALLOCATE (seed_array(seed_array_size))
+    seed_array = seed
+    CALL RANDOM_SEED (PUT=seed_array(1:seed_array_size))
+end subroutine
+
+subroutine test_dsyev(ndim, num_loops)
     use mod_diag, only: diagonalize
     implicit none
     integer, intent(in) :: ndim
+    integer, intent(in) :: num_loops
     integer, parameter :: dp = kind(1.0d0)
     real :: tstart, tstop
 
@@ -233,7 +263,7 @@ subroutine test_dsyev(ndim)
     REAL :: a_diff, diff, rate
 
     real(dp), allocatable :: evalues(:)
-    real(dp), allocatable :: amat(:,:)
+    real(dp), allocatable :: amat(:,:),playmat(:,:)
     real(dp) :: x
     integer :: i, j, info
 
@@ -248,6 +278,9 @@ subroutine test_dsyev(ndim)
     s = 0
 
     allocate(amat(ndim, ndim))
+    allocate(playmat(ndim, ndim))
+
+    call set_random_seed(42)
 
     !call random_number(amat)
     !amat = 0.5_dp*(amat + transpose(amat))
@@ -262,10 +295,14 @@ subroutine test_dsyev(ndim)
     allocate(evalues(ndim))
     evalues = 0.0_dp
 
+
     call cpu_time(tstart)
     call system_clock(c1)
 
-    call diagonalize(amat, ndim, evalues, info)
+    do j = 1, num_loops
+        playmat = amat
+        call diagonalize(playmat, ndim, evalues, info)
+    end do
 
     call cpu_time(tstop)
     call system_clock(c2)
@@ -285,6 +322,6 @@ subroutine test_dsyev(ndim)
     WRITE(*,*) "mean diff    : ",diff
     WRITE(*,*) "abs mean diff: ",a_diff
 
-    deallocate(evalues, amat)
+    deallocate(evalues, amat, playmat)
     end
      
