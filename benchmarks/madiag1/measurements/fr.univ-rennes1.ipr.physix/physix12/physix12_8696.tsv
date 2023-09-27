@@ -1,0 +1,3 @@
+# machine_id matrix_size num_loops num_processes duration_min(s) duration_max(s)
+physix12 128 10000 1 23.18 23.18
+physix12 128 10000 2 22.98 23.06

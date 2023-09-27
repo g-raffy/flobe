@@ -1,4 +1,8 @@
 *.mod
-graphics/*
-measurements/fr.univ-rennes1.ipr.physix
+*.log
+benchmarks/madiag1/graphics/*
+#benchmarks/madiag1/measurements/fr.univ-rennes1.ipr.physix/physix*/*.log
+#benchmarks/madiag1/measurements/fr.univ-rennes1.ipr.physix/graffy-ws2
+benchmarks/madiag1/measurements/fr.univ-rennes1.ipr.physix/toto*
 DLTR-2007-005.pdf
+

@@ -1,17 +1,11 @@
 #!/bin/bash
-# generates tsv file by calling bench_cohabitation.bash with multiple parameters
+# generates tsv file by calling madiag1_star.bash with multiple parameters
 NUM_CORES="$1" # the number of physical cores of the machine running this test
 MACHINE_ID="$2" # the name of the machine running this test (eg physix12)
 NUM_RUNS=$3
 set -o errexit
 
-case $EXE_NAME in
-	'diag_mkl_omp' | 'diag_mkl')
-		module load compilers/ifort/latest
-		;;
-esac
-
-tmp_dir='/tmp/bug3177/cohab_batch/$$'
+tmp_dir='/tmp/bug3177/madiag1_batch/$$'
 mkdir -p $tmp_dir
 
 
@@ -68,8 +62,11 @@ do
 		esac
 		for num_processes in $(seq 1 $NUM_CORES)
 		do
-			./bench_cohabitation.bash $num_processes $matrix_size $num_loops diag_mkl_omp > $tmp_dir/measure.log
+			./madiag1_star.bash $num_processes $matrix_size $num_loops diag_mkl_omp > $tmp_dir/measure.log
+			# we expect $tmp_dir/measure.log to contain a line such as:
+			# 'computation duration range on each core [1.23456;3.1415] seconds'
 			durations=$(cat $tmp_dir/measure.log | grep '^computation duration' | sed 's/computation duration range on each core \[\([0-9.]*\);\([0-9.]*\)\] seconds/\1 \2/')
+			# durations should look like '1.23456 3.1415'
 			min_duration=$(echo $durations | awk '{printf("%s",$1);}')
 			max_duration=$(echo $durations | awk '{printf("%s",$2);}')
 			tsv_line=$(printf "%s\t%s\t%s\t%s\t%s\t%s" "$MACHINE_ID" "$matrix_size" "$num_loops" "$num_processes" "$min_duration" "$max_duration")

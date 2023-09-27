@@ -67,7 +67,7 @@ def merge_structured_arrays(array1, array2):
 
 def get_diag_perf_table():
     diag_perf_table = None
-    for tsv_file in ['measurements/fr.univ-rennes1.ipr.physix/madiag1/physix90/physix90_368318.tsv', 'measurements/fr.univ-rennes1.ipr.physix/madiag1/physix12/physix12_9079.tsv', 'measurements/fr.univ-rennes1.ipr.physix/madiag1/physix96/physix96_189748.tsv']:
+    for tsv_file in ['measurements/fr.univ-rennes1.ipr.physix/physix90/physix90_368318.tsv', 'measurements/fr.univ-rennes1.ipr.physix/physix12/physix12_9079.tsv', 'measurements/fr.univ-rennes1.ipr.physix/physix96/physix96_189748.tsv']:
         table = numpy.genfromtxt(tsv_file, dtype=("|U10", int, int, int, float, float), names=True, delimiter='\t')
         # table is what numpy calls a structured array
         if diag_perf_table is None:
