@@ -3,14 +3,14 @@
 flobe is a tool suite aimed at measuring floating point performance of processors
 
 tsv files made by hand (running `madiag1_star.bash` without `madiag1_batch.bash`):
-- `measurements/fr.univ-rennes1.ipr.physix/diag_bench.tsv`
-- `measurements/fr.univ-rennes1.ipr.physix/diag_mkl_bench.tsv`
-- `measurements/fr.univ-rennes1.ipr.physix/dsyev_bench.tsv`
-- `measurements/fr.univ-rennes1.ipr.physix/multi_diag_mkl_omp.tsv`
+- `benchmarks/madiag1/measurements/fr.univ-rennes1.ipr.physix/diag_bench.tsv`
+- `benchmarks/madiag1/measurements/fr.univ-rennes1.ipr.physix/diag_mkl_bench.tsv`
+- `benchmarks/madiag1/measurements/fr.univ-rennes1.ipr.physix/dsyev_bench.tsv`
+- `benchmarks/madiag1/measurements/fr.univ-rennes1.ipr.physix/multi_diag_mkl_omp.tsv`
 
 ## how to use
 
-1. run madiag1 benchmarks on each of the target machines
+### 1. run madiag1 benchmarks on each of the target machines
 
 get a copy of flobe:
 ```sh
@@ -65,7 +65,7 @@ physix90        8192    1       65      1384.70 1709.24
 physix90        8192    1       66      2517.80 4155.65
 ```
 
-2. gather results and plot them on a workstation
+### 2. gather results and plot them on a workstation
 
 
 ```sh
