@@ -67,7 +67,7 @@ def merge_structured_arrays(array1, array2):
 
 def get_diag_perf_table():
     diag_perf_table = None
-    for tsv_file in ['cohab/physix90/physix90_368318.tsv', 'cohab/physix12/physix12_9079.tsv', 'cohab/physix96/physix96_189748.tsv']:
+    for tsv_file in ['measurements/fr.univ-rennes1.ipr.physix/madiag1/physix90/physix90_368318.tsv', 'measurements/fr.univ-rennes1.ipr.physix/madiag1/physix12/physix12_9079.tsv', 'measurements/fr.univ-rennes1.ipr.physix/madiag1/physix96/physix96_189748.tsv']:
         table = numpy.genfromtxt(tsv_file, dtype=("|U10", int, int, int, float, float), names=True, delimiter='\t')
         # table is what numpy calls a structured array
         if diag_perf_table is None:
@@ -99,10 +99,10 @@ def plot_load_to_diag_perf():
 
         fig, ax = plt.subplots()
         max_duration = 0.0
-        for machine_id in ['physix12', 'physix90', 'physix96']:
+        for machine_id in ['physix12', 'physix96']:
             # machine_id matrix_size num_loops num_processes duration_min(s) duration_max(s)
             # physix12 128 10000 1 23.33 23.33
-            # physix12_table = numpy.genfromtxt('cohab/physix12/physix12_9079.tsv', dtype=("|U10", int, int, int, float, float), names=True, delimiter='\t')
+            # physix12_table = numpy.genfromtxt('measurements/fr.univ-rennes1.ipr.physix/madiag1/physix12/physix12_9079.tsv', dtype=("|U10", int, int, int, float, float), names=True, delimiter='\t')
             machine_table = diag_perf_table[diag_perf_table['machine_id'] == machine_id]
             # print(machine_table.dtype)
             # print(machine_table.shape)

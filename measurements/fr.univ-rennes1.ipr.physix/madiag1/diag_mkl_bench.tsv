@@ -1,0 +1,90 @@
+# cpu	config	num_cores	num_gpu	matrix_size	duration(s)	8_core_restricted_duration
+intel_xeon_6248r	mkl_omp	72	0	4000	4.95
+intel_xeon_6248r	mkl_omp	72	0	8000	36.00	22
+intel_xeon_6248r	mkl_omp	72	0	10000	90.91 	53
+intel_xeon_6248r	mkl_omp	72	0	12000	159.66	105
+intel_xeon_6248r	mkl_omp	72	0	16000	405.31	270
+intel_xeon_6248r	
+intel_xeon_6248r	mkl_omp	1	0	8000	254.52	
+intel_xeon_6248r	mkl_omp	2	0	8000	135.76	
+intel_xeon_6248r	mkl_omp	3	0	8000	87.75	
+intel_xeon_6248r	mkl_omp	4	0	8000	61.85	
+intel_xeon_6248r	mkl_omp	6	0	8000	48.59
+intel_xeon_6248r	mkl_omp	7	0	8000	42.77
+intel_xeon_6248r	mkl_omp	8	0	8000	35.88	
+intel_xeon_6248r	mkl_omp	10	0	8000	34.03	26
+intel_xeon_6248r	mkl_omp	12	0	8000	35.08	27
+intel_xeon_6248r	mkl_omp	18	0	8000	34.99	25
+intel_xeon_6248r	mkl_omp	36	0	8000	34.72	26
+intel_xeon_6248r	
+intel_xeon_6248r	mkl_omp	1	0	4000	26.71	
+intel_xeon_6248r	mkl_omp	2	0	4000	13.12	
+intel_xeon_6248r	mkl_omp	3	0	4000	8.31	
+intel_xeon_6248r	mkl_omp	4	0	4000	6.32	
+intel_xeon_6248r	mkl_omp	5	0	4000	5.53	
+intel_xeon_6248r	mkl_omp	6	0	4000	4.93	
+intel_xeon_6248r	mkl_omp	7	0	4000	5.30	
+intel_xeon_6248r	mkl_omp	8	0	4000	5.30	
+intel_xeon_6248r	mkl_omp	10	0	4000	4.75	
+intel_xeon_6248r	mkl_omp	12	0	4000	4.89	
+intel_xeon_6248r	mkl_omp	16	0	4000	4.14	
+intel_xeon_6248r	mkl_omp	32	0	4000	4.32	
+intel_xeon_6248r	mkl_omp	36	0	4000	4.89	
+intel_xeon_6248r	mkl_omp	72	0	4000	4.89	
+intel_xeon_6248r	
+intel_xeon_6248r	mkl_omp	1	0	6000	106.50	
+intel_xeon_6248r	mkl_omp	2	0	6000	54.67	
+intel_xeon_6248r	mkl_omp	3	0	6000	34.54	
+intel_xeon_6248r	mkl_omp	4	0	6000	23.82	
+intel_xeon_6248r	mkl_omp	5	0	6000	22.28	
+intel_xeon_6248r	mkl_omp	6	0	6000	19.14	
+intel_xeon_6248r	mkl_omp	7	0	6000	17.35	
+intel_xeon_6248r	mkl_omp	8	0	6000	14.94	
+intel_xeon_6248r	mkl_omp	10	0	6000	12.92	
+intel_xeon_6248r	mkl_omp	12	0	6000	14.25	
+intel_xeon_6248r	mkl_omp	16	0	6000	13.43	
+intel_xeon_6248r	mkl_omp	32	0	6000	13.94	
+intel_xeon_6248r	mkl_omp	36	0	6000	12.95	
+intel_xeon_6248r	mkl_omp	72	0	6000	14.04	
+intel_xeon_6248r	
+intel_xeon_6248r	mkl_omp	1	0	10000	332.61	
+intel_xeon_6248r	mkl_omp	2	0	10000	278.86	
+intel_xeon_6248r	mkl_omp	4	0	10000	129.08	
+intel_xeon_6248r	mkl_omp	8	0	10000	79.12	
+intel_xeon_6248r	mkl_omp	12	0	10000	72.14	
+intel_xeon_6248r	mkl_omp	16	0	10000	73.30	
+intel_xeon_6248r	mkl_omp	18	0	10000	72.82	
+intel_xeon_6248r	mkl_omp	36	0	10000	72.33	
+intel_xeon_6248r	mkl_omp	72	0	10000	82.70	
+
+intel_xeon_6248r	mkl_omp	1	0	12000	588.46
+intel_xeon_6248r	mkl_omp	2	0	12000	484.13
+intel_xeon_6248r	mkl_omp	4	0	12000	257.59
+intel_xeon_6248r	mkl_omp	8	0	12000	153.83
+intel_xeon_6248r	mkl_omp	12	0	12000	155.06
+intel_xeon_6248r	mkl_omp	16	0	12000	158.86
+intel_xeon_6248r	mkl_omp	18	0	12000	164.47
+intel_xeon_6248r	mkl_omp	24	0	12000	165.24
+intel_xeon_6248r	mkl_omp	32	0	12000	164.87
+
+amd_epyc_7282	mkl_omp	1	0	6000	122.31
+amd_epyc_7282	mkl_omp	2	0	6000	85.99
+amd_epyc_7282	mkl_omp	4	0	6000	45.24
+amd_epyc_7282	mkl_omp	8	0	6000	28.61
+amd_epyc_7282	mkl_omp	12	0	6000	20.04
+amd_epyc_7282	mkl_omp	16	0	6000	17.55
+amd_epyc_7282	mkl_omp	18	0	6000	17.40
+amd_epyc_7282	mkl_omp	24	0	6000	21.61
+amd_epyc_7282	mkl_omp	32	0	6000	18.23
+
+
+
+amd_epyc_7282	mkl_omp	1	0	12000	881.80
+amd_epyc_7282	mkl_omp	2	0	12000	620.87
+amd_epyc_7282	mkl_omp	4	0	12000	327.27
+amd_epyc_7282	mkl_omp	8	0	12000	197.10
+amd_epyc_7282	mkl_omp	12	0	12000	193.84
+amd_epyc_7282	mkl_omp	16	0	12000	179.52
+amd_epyc_7282	mkl_omp	18	0	12000	226.02
+amd_epyc_7282	mkl_omp	24	0	12000	175.22
+amd_epyc_7282	mkl_omp	32	0	12000	192.16

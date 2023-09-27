@@ -1,6 +1,6 @@
 #!/bin/bash
 set -o errexit
-NUM_CORES="$1" # the nember of instances of STRESSER_COMMAND that 
+NUM_CORES="$1" # the number of instances of STRESSER_COMMAND that will be run
 MATRIX_SIZE="$2" # eg 128
 NUM_LOOPS="$3" # eg 100
 EXE_NAME="$4" # eg 'diag_mkl_omp'
