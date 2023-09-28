@@ -212,7 +212,7 @@ subroutine diagonalize(amat, ndim, evalues, info)
 #endif
 
 #ifdef USE_MAGMA_DSYEVD
-    call magmaf_dsyevd (jobz, 'u', ndim, amat, lda, evalues, work, lwork, iwork, liwork, info)
+    call magmaf_dsyevd (jobz, 'u', ndim, amat, ndim, evalues, work, lwork, iwork, liwork, info)
 #endif
 
 #ifdef USE_DSYEV
