@@ -29,4 +29,4 @@ mamul1_magma_gpu: mamul1.F90
 
 .PHONY: clean
 clean:
-	rm -Rf mamul1_mkl mamul1_mkl_omp mamul1_magma mamul1_magma_gpu mamul1_lapack
+	rm -Rf mamul1_mkl mamul1_mkl_omp mamul1_magma mamul1_magma_gpu mamul1_lapack *.mod

@@ -29,4 +29,4 @@ diag_magma_gpu: diag_f.F90
 
 .PHONY: clean
 clean:
-	rm -Rf diag_mkl diag_mkl_omp diag_magma diag_magma_gpu diag_lapack
+	rm -Rf diag_mkl diag_mkl_omp diag_magma diag_magma_gpu diag_lapack *.mod
