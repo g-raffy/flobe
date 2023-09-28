@@ -236,6 +236,10 @@ subroutine diagonalize(amat, ndim, evalues, info)
 
     deallocate(work)
 
+#if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
+    call magmaf_finalize()
+#endif
+
 end subroutine diagonalize
 
 endmodule mod_diag
