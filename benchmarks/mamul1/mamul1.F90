@@ -77,8 +77,125 @@ subroutine print_matrix(mat, ndim)
     end do
 end subroutine
 
+! square matrix multiplication
+subroutine sqmatmul(amat, bmat, cmat, ndim)
+#if defined(USE_MAGMA_DGEMM_GPU)
+    ! use magma, only: magmaf_init, magmaf_finalize
+    ! use magma, only: magmaf_queue_create, magmaf_queue_destroy
+    ! use magma, only: magmaf_dmalloc, magmaf_free
+    ! use magma, only: magmaf_dsetmatrix, magmaf_dgetmatrix
+    ! use magma, only: magmablasf_dgemm
+    use magma
+#endif
+    real*8, intent(in) :: amat(ndim,ndim)
+    real*8, intent(in) :: bmat(ndim,ndim)
+    real*8, intent(out) :: cmat(ndim,ndim)
+    integer :: lda, ldb, ldc
+    integer :: info
+
+    real :: time_before, time_after
+    integer(8) :: num_ops
+    real :: gflops
+
+#ifdef USE_MAGMA_DGEMM_GPU
+    magma_devptr_t :: d_amat
+    magma_devptr_t :: d_bmat
+    magma_devptr_t :: d_cmat
+    magma_devptr_t :: queue  !! really a CPU pointer
+#endif
+    lda = ceiling(real(ndim)/32)*32
+    ldb = ceiling(real(ndim)/32)*32
+    ldc = ceiling(real(ndim)/32)*32
+
+
+#if defined(USE_MAGMA_DGEMM_GPU)
+    !! allocate GPU memory
+    info = magmaf_dmalloc( d_amat, lda*ndim )
+    if (d_amat == 0) then
+        print "(a)", "failed to allocate d_amat"
+        return
+    endif
+    info = magmaf_dmalloc( d_bmat, ldb*ndim )
+    if (d_bmat == 0) then
+        print "(a)", "failed to allocate d_bmat"
+        return
+    endif
+    info = magmaf_dmalloc( d_cmat, ldc*ndim )
+    if (d_cmat == 0) then
+        print "(a)", "failed to allocate d_cmat"
+        return
+    endif
+
+    ! copy A to dA and B to dB
+    call magmaf_queue_create( 0, queue )
+    call magmaf_dsetmatrix( ndim, ndim, amat, ndim, d_amat, lda, queue )
+    call magmaf_dsetmatrix( ndim, ndim, bmat, ndim, d_bmat, ldb, queue )
+
+    call cpu_time(time_before)
+    write (6,*) 'before magmablasf_dgemm, time=', time_before
+
+    call magmablasf_dgemm ('N', 'N', ndim, ndim, ndim, 1.0d0, d_amat, lda, d_bmat, ldb, 0.0d0, d_cmat, ldc, queue)
+    call magmaf_queue_sync(queue)
+
+    call cpu_time(time_after)
+    num_ops = real(ndim) * real(ndim) * real(ndim) * 2
+    gflops = num_ops / (time_after - time_before) / 1.0e9
+    write (6,*) 'after magmablasf_dgemm, time=', time_after
+    write (6,*) 'magmablasf_dgemm (from gpu memory to gpu memory) duration :', (time_after - time_before), '(', gflops, ' gflops)'
+
+    call magmaf_dgetmatrix( ndim, ndim, d_cmat, ldc, cmat, ndim, queue )
+    call magmaf_queue_destroy( queue )
+
+    info = magmaf_free(d_cmat)
+    info = magmaf_free(d_bmat)
+    info = magmaf_free(d_amat)
+
+#endif
+
+#ifdef USE_DGEMM
+    ! subroutine dgemm 	( 	character  	TRANSA,
+    ! 		character  	TRANSB,
+    ! 		integer  	M,
+    ! 		integer  	N,
+    ! 		integer  	K,
+    ! 		double precision  	ALPHA,
+    ! 		double precision, dimension(lda,*)  	A,
+    ! 		integer  	LDA,
+    ! 		double precision, dimension(ldb,*)  	B,
+    ! 		integer  	LDB,
+    ! 		double precision  	BETA,
+    ! 		double precision, dimension(ldc,*)  	C,
+    ! 		integer  	LDC 
+    ! 	) 	        
+    call dgemm('N', 'N', ndim, ndim, ndim, 1.0d0, amat, ndim, bmat, ndim, 0.0d0, cmat, ndim)
+#endif
+
+end subroutine
+
+subroutine check_cmat_element(cmat, row, col, amat, bmat, ndim)
+    real(8), intent(in) :: cmat(ndim, ndim)
+    integer, intent(in) :: row
+    integer, intent(in) :: col
+    real(8), intent(in) :: amat(ndim, ndim)
+    real(8), intent(in) :: bmat(ndim, ndim)
+    integer, intent(in) :: ndim
+
+    real(8) :: x
+    x = 0.0d0
+    do i = 1, ndim
+       x = x + amat(row, i) * bmat(i, col)
+    end do
+
+    write(6, '("expected cmat(", i0, ", ", i0, ")", e23.15e3)') row, col, x
+    write(6, '("computed cmat(", i0, ", ", i0, ")", e23.15e3)') row, col, cmat(row, col)
+    if (abs(cmat(row, col) - x) > 1.0e-8) then
+        stop 'a computed element has a wrong value'
+    end if
+end subroutine
+
+
 subroutine test_dgemm(ndim, num_loops)
-#if defined(USE_MAGMA_DGEMM) || defined(USE_MAGMA_DGEMM_GPU)
+#if defined(USE_MAGMA_DGEMM_GPU)
     use magma, only: magmaf_init, magmaf_finalize
     use magma, only: magmablasf_dgemm  !, magmaf_dgemm_gpu
 #endif
@@ -94,16 +211,13 @@ subroutine test_dgemm(ndim, num_loops)
     INTEGER :: c1,c2,cr,cm,s
     REAL :: a_diff, diff, rate
 
-    real*8 :: amat(ndim,ndim)
-    real*8 :: bmat(ndim,ndim)
-    real*8 :: cmat(ndim,ndim)
-    ! real*8, allocatable :: amat(:,:)
-    ! real*8, allocatable :: bmat(:,:)
-    ! real*8, allocatable :: cmat(:,:)
+    real*8, allocatable :: amat(:,:)
+    real*8, allocatable :: bmat(:,:)
+    real*8, allocatable :: cmat(:,:)
     real(dp) :: x
     integer :: i, j
 
-#if defined(USE_MAGMA_DGEMM) || defined(USE_MAGMA_DGEMM_GPU)
+#if defined(USE_MAGMA_DGEMM_GPU)
     call magmaf_init()
 #endif
 
@@ -117,9 +231,9 @@ subroutine test_dgemm(ndim, num_loops)
     a_diff = 0.0
     s = 0
 
-    ! allocate(amat(ndim, ndim))
-    ! allocate(bmat(ndim, ndim))
-    ! allocate(cmat(ndim, ndim))
+    allocate(amat(ndim, ndim))
+    allocate(bmat(ndim, ndim))
+    allocate(cmat(ndim, ndim))
 
     call set_random_seed(42)
 
@@ -140,31 +254,7 @@ subroutine test_dgemm(ndim, num_loops)
     do j = 1, num_loops
         ! playmat = amat
 
-#if defined(USE_MAGMA_DGEMM_GPU)
-        ! call magmaf_dgemm_gpu ()
-#endif
-
-#ifdef USE_MAGMA_DGEMM
-        call magmablasf_dgemm ('N', 'N', ndim, ndim, ndim, 1.0d0, amat, ndim, bmat, ndim, 0.0d0, cmat, ndim)
-#endif
-
-#ifdef USE_DGEMM
-        ! subroutine dgemm 	( 	character  	TRANSA,
-        ! 		character  	TRANSB,
-        ! 		integer  	M,
-        ! 		integer  	N,
-        ! 		integer  	K,
-        ! 		double precision  	ALPHA,
-        ! 		double precision, dimension(lda,*)  	A,
-        ! 		integer  	LDA,
-        ! 		double precision, dimension(ldb,*)  	B,
-        ! 		integer  	LDB,
-        ! 		double precision  	BETA,
-        ! 		double precision, dimension(ldc,*)  	C,
-        ! 		integer  	LDC 
-        ! 	) 	        
-        call dgemm('N', 'N', ndim, ndim, ndim, 1.0d0, amat, ndim, bmat, ndim, 0.0d0, cmat, ndim)
-#endif
+        call sqmatmul(amat, bmat, cmat, ndim)
 
     end do
 
@@ -175,10 +265,10 @@ subroutine test_dgemm(ndim, num_loops)
     a_diff = ABS((c2 - c1)/rate - (tstop - tstart)) + a_diff
 
     ! check one of the elements of cmat (the last one here: cmat(ndim, ndim))
-    x = 0.0d0
-    do i = 1, ndim
-       x = x + amat(ndim, i) * bmat(i, ndim)
-    end do
+    call check_cmat_element(cmat,    1,    1, amat, bmat, ndim)
+    call check_cmat_element(cmat,    1, ndim, amat, bmat, ndim)
+    call check_cmat_element(cmat, ndim,    1, amat, bmat, ndim)
+    call check_cmat_element(cmat, ndim, ndim, amat, bmat, ndim)
 
     ! write(6, *) 'amat = '
     ! call print_matrix(amat, ndim)
@@ -188,15 +278,13 @@ subroutine test_dgemm(ndim, num_loops)
 
     ! write(6, *) 'cmat = '
     ! call print_matrix(cmat, ndim)
-    write(6, '("expected cmat(", i0, ", ", i0, ")", e23.15e3)') ndim, ndim, x
-    write(6, '("computed cmat(", i0, ", ", i0, ")", e23.15e3)') ndim, ndim, cmat(ndim, ndim)
 
-    num_ops = real(ndim) * real(ndim) * real(ndim) * 2
+    num_ops = real(ndim) * real(ndim) * real(ndim) * 2 * num_loops
     gflops = num_ops / (tstop-tstart) / 1.0e9
 
 
     write(6, '("Time taken by dgemm for matrix size ",i8," was ",f10.2," seconds")') ndim, tstop-tstart
-    WRITE(*,*) "gflops       : ", gflops
+    WRITE(*,*) "gflops (from cpu memory to cpu memory)       : ", gflops
     
     WRITE(*,*) "system_clock : ",(c2 - c1)/rate
     WRITE(*,*) "cpu_time     : ",(tstop - tstart)
@@ -204,7 +292,7 @@ subroutine test_dgemm(ndim, num_loops)
     WRITE(*,*) "mean diff    : ",diff
     WRITE(*,*) "abs mean diff: ",a_diff
 
-#if defined(USE_MAGMA_DGEMM) || defined(USE_MAGMA_DGEMM_GPU)
+#if defined(USE_MAGMA_DGEMM_GPU)
     call magmaf_finalize()
 #endif
 

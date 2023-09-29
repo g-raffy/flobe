@@ -10,7 +10,7 @@ MAGMA_LIBS     = $(shell export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/opt/magma/ma
 
 
 .PHONY: all
-all: mamul1_mkl mamul1_mkl_omp mamul1_magma mamul1_magma_gpu mamul1_lapack
+all: mamul1_mkl mamul1_mkl_omp mamul1_magma_gpu mamul1_lapack
 
 mamul1_lapack: mamul1.F90
 	bash -l -c "gfortran -O3 -DUSE_DGEMM $< -o $@ -llapack"
@@ -20,9 +20,6 @@ mamul1_mkl: mamul1.F90
 
 mamul1_mkl_omp: mamul1.F90
 	bash -l -c "module load compilers/ifort/latest && ifort -DUSE_DGEMM -O3 $< -o $@ -lmkl_intel_thread -lmkl_core -lmkl_intel_lp64 -liomp5 -lpthread -lm -ldl"
-
-mamul1_magma: mamul1.F90
-	bash -l -c 'module load compilers/ifort/latest && ifort -DUSE_MAGMA_DGEMM $(MAGMA_F90FLAGS) -O3 $< -o $@ $(MAGMA_LIBS)'
 
 mamul1_magma_gpu: mamul1.F90
 	bash -l -c 'module load compilers/ifort/latest && ifort -DUSE_MAGMA_DGEMM_GPU $(MAGMA_F90FLAGS) -O3 $< -o $@ $(MAGMA_LIBS)'
