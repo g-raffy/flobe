@@ -1,3 +1,13 @@
+#define MAMUL1_VERSION "1.0.0"
+subroutine print_usage(prog_path)
+    character(len=*), intent(in) :: prog_path
+    write(6,'("mamul1 v",a,": benchmark performs a square matrix multiplication in double precision")') MAMUL1_VERSION;
+    write(6,'()');
+    write(6,'("Usage: ",a," <NDIM> <NUM_LOOPS>")') trim(prog_path);
+    write(6,'("   <NDIM> positive integer representing the size of the square matrices to multiply ")');
+    write(6,'("   <NUM_LOOPS> positive integer representing the number of times the multiplication is performed")');
+end subroutine
+
 program mamul1
 
 implicit none
@@ -5,48 +15,49 @@ implicit none
 
 integer :: argc, info, ndim, num_loops
 
-character(len=8) :: arg0, arg1, arg2
+character(len=32) :: arg0, arg1, arg2
 
 
 call get_command_argument(0,arg0)
 
 argc = command_argument_count()
 if (argc /= 2) then
-    write(6,'("Usage: ",a," NDIM NUM_LOOPS, where NDIM is a positive integer")') trim(arg0);
+    call print_usage(trim(arg0))
+    ! write(6,'("Usage: ",a," NDIM NUM_LOOPS, where NDIM is a positive integer")') trim(arg0);
     stop
 end if
 
 call get_command_argument(1,arg1,status=info)
 if (info /= 0) then
     write(6,'("Error reading argument: info = ",i2)') info
-    write(6,'("Usage: ",a," NDIM NUM_LOOPS, where NDIM is a positive integer")') trim(arg0);
+    call print_usage(trim(arg0))
 stop
 end if
 
 call get_command_argument(2,arg2,status=info)
 if (info /= 0) then
     write(6,'("Error reading argument: info = ",i2)') info
-    write(6,'("Usage: ",a," NDIM NUM_LOOPS, where NDIM is a positive integer")') trim(arg0);
+    call print_usage(trim(arg0))
 stop
 end if
 
 read(arg1,*,iostat=info) ndim
 if (info /= 0) then
     write(6,'("Error converting ndim argument to integer: info = ",i2)') info
-    write(6,'("Usage: ",a," NDIM NUM_LOOPS, where NDIM is a positive integer")') trim(arg0);
+    call print_usage(trim(arg0))
 stop
 end if
 
 read(arg2,*,iostat=info) num_loops
 if (info /= 0) then
     write(6,'("Error converting num_loops argument to integer: info = ",i2)') info
-    write(6,'("Usage: ",a," NDIM NUM_LOOPS, where NDIM is a positive integer")') trim(arg0);
+    call print_usage(trim(arg0))
 stop
 end if
 
 
 if (ndim < 1) then
-    write(6,'("Usage: ",a," NDIM NUM_LOOPS, where NDIM is a positive integer")') trim(arg0);
+    call print_usage(trim(arg0))
 stop
 end if
 

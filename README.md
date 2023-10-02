@@ -17,6 +17,33 @@ get a copy of flobe:
 bob@physix90:/opt/ipr/work.local/bob$ git clone git@github.com:g-raffy/flobe.git
 ```
 
+configure and build flobe
+```sh
+bob@physix90:/opt/ipr/work.local/bob$ mkdir -p ./flobe_build
+bob@physix90:/opt/ipr/work.local/bob$ mkdir -p ./flobe_install
+bob@physix90:/opt/ipr/work.local/bob$ cd ./flobe_build
+``` 
+
+basic configuration (uses default blas and lapack library):
+```sh
+bob@physix90:/opt/ipr/work.local/bob/flobe_build$ cmake -DCMAKE_INSTALL_PREFIX=~/flobe_install -DUSE_MAGMA=FALSE ../flobe
+```
+
+if you want to configure to use Intel Math Kernel Libraries:
+```sh
+bob@physix90:/opt/ipr/work.local/bob/flobe_build$ cmake -DCMAKE_INSTALL_PREFIX=~/flobe_install -DUSE_MAGMA=FALSE -DBLA_VENDOR=Intel10_64lp ../flobe
+```
+
+if you want to configure to use magma:
+```sh
+bob@physix90:/opt/ipr/work.local/bob/flobe_build$ cmake -DCMAKE_INSTALL_PREFIX=~/flobe_install -DUSE_MAGMA=TRUE -DMAGMA_API=CPU_MEM_API ../flobe
+```
+then build an install the executables
+```sh
+bob@physix90:/opt/ipr/work.local/bob/flobe_build$ make install
+```
+
+
 run the benchmark, here with `num_cores=72` `num_runs=10`
 
 ```sh
