@@ -1,7 +1,17 @@
 #define MAMUL1_VERSION "1.0.0"
+
+#define magma_devptr_t integer(kind=8)
 subroutine print_usage(prog_path)
     character(len=*), intent(in) :: prog_path
-    write(6,'("mamul1 v",a,": benchmark performs a square matrix multiplication in double precision")') MAMUL1_VERSION;
+    character(len=80) :: build_variant
+#if defined(USE_MAGMA_DGEMM_GPU)
+    build_variant='gpu'
+#elif defined(USE_DGEMM)
+    build_variant='cpu'
+#else
+    build_variant='unknown'
+#endif
+    write(6,'("mamul1 v",a," (variant:",a,"): benchmark performs a square matrix multiplication in double precision")') MAMUL1_VERSION, trim(build_variant);
     write(6,'()');
     write(6,'("Usage: ",a," <NDIM> <NUM_LOOPS>")') trim(prog_path);
     write(6,'("   <NDIM> positive integer representing the size of the square matrices to multiply ")');
@@ -91,12 +101,11 @@ end subroutine
 ! square matrix multiplication
 subroutine sqmatmul(amat, bmat, cmat, ndim)
 #if defined(USE_MAGMA_DGEMM_GPU)
-    ! use magma, only: magmaf_init, magmaf_finalize
-    ! use magma, only: magmaf_queue_create, magmaf_queue_destroy
-    ! use magma, only: magmaf_dmalloc, magmaf_free
-    ! use magma, only: magmaf_dsetmatrix, magmaf_dgetmatrix
-    ! use magma, only: magmablasf_dgemm
-    use magma
+    use magma, only: magmaf_init, magmaf_finalize
+    use magma, only: magmaf_queue_create, magmaf_queue_destroy
+    use magma, only: magmaf_dmalloc, magmaf_free
+    use magma, only: magmaf_dsetmatrix, magmaf_dgetmatrix
+    use magma, only: magmablasf_dgemm
 #endif
     real*8, intent(in) :: amat(ndim,ndim)
     real*8, intent(in) :: bmat(ndim,ndim)
@@ -121,16 +130,19 @@ subroutine sqmatmul(amat, bmat, cmat, ndim)
 
 #if defined(USE_MAGMA_DGEMM_GPU)
     !! allocate GPU memory
+    write(6,'("DEBUG: before matrix A gpu memory allocation (",i0," doubles)")') lda * ndim
     info = magmaf_dmalloc( d_amat, lda*ndim )
     if (d_amat == 0) then
         print "(a)", "failed to allocate d_amat"
         return
     endif
+    write(6,'("DEBUG: before matrix B gpu memory allocation (",i0," doubles)")') ldb * ndim
     info = magmaf_dmalloc( d_bmat, ldb*ndim )
     if (d_bmat == 0) then
         print "(a)", "failed to allocate d_bmat"
         return
     endif
+    write(6,'("DEBUG: before matrix C gpu memory allocation (",i0," doubles)")') ldc * ndim
     info = magmaf_dmalloc( d_cmat, ldc*ndim )
     if (d_cmat == 0) then
         print "(a)", "failed to allocate d_cmat"
@@ -139,7 +151,15 @@ subroutine sqmatmul(amat, bmat, cmat, ndim)
 
     ! copy A to dA and B to dB
     call magmaf_queue_create( 0, queue )
+    write(6,'("DEBUG: queue = ",i0)') queue
+    if (queue == 0) then
+        print "(a)", "failed to create a queue"
+        return
+    endif
+
+    write(6,*) 'DEBUG: copying matrix A from CPU to GPU memory'
     call magmaf_dsetmatrix( ndim, ndim, amat, ndim, d_amat, lda, queue )
+    write(6,*) 'DEBUG: copying matrix B from CPU to GPU memory'
     call magmaf_dsetmatrix( ndim, ndim, bmat, ndim, d_bmat, ldb, queue )
 
     call cpu_time(time_before)
@@ -154,6 +174,7 @@ subroutine sqmatmul(amat, bmat, cmat, ndim)
     write (6,*) 'after magmablasf_dgemm, time=', time_after
     write (6,*) 'magmablasf_dgemm (from gpu memory to gpu memory) duration :', (time_after - time_before), '(', gflops, ' gflops)'
 
+    write(6,*) 'DEBUG: copying matrix C from GPU to CPU memory'
     call magmaf_dgetmatrix( ndim, ndim, d_cmat, ldc, cmat, ndim, queue )
     call magmaf_queue_destroy( queue )
 
@@ -229,6 +250,7 @@ subroutine test_dgemm(ndim, num_loops)
     integer :: i, j
 
 #if defined(USE_MAGMA_DGEMM_GPU)
+    write(6,*) 'DEBUG: init magma'
     call magmaf_init()
 #endif
 
@@ -304,6 +326,7 @@ subroutine test_dgemm(ndim, num_loops)
     WRITE(*,*) "abs mean diff: ",a_diff
 
 #if defined(USE_MAGMA_DGEMM_GPU)
+    write(6,*) 'DEBUG: deinit magma'
     call magmaf_finalize()
 #endif
 

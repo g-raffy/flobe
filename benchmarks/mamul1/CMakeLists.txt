@@ -7,18 +7,26 @@ set(MAMUL1_MAGMA_API "CPU_MEM_API" CACHE STRING "which magma API to use when bui
 
 add_executable(mamul1 mamul1.F90)
 
-# Allow arbitrary long lines. Needed as preprocessing could generate long line lengths.
-target_compile_options(mamul1 PUBLIC -ffree-line-length-none)
+if (CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+	# Allow arbitrary long lines. Needed as preprocessing could generate long line lengths.
+	target_compile_options(mamul1 PUBLIC -ffree-line-length-none)
+elseif (Fortran_COMPILER_NAME STREQUAL "ifort")
+	# Intel (ifort)
+	target_compile_options(mamul1 PUBLIC -no-wrap-margin)
+endif()
+
 
 if (MAMUL1_USE_MAGMA)
 	find_package( MAGMA REQUIRED )
 	if( MAMUL1_MAGMA_API STREQUAL "CPU_MEM_API" )
-		target_compile_definitions(mamul1 PUBLIC MAMUL1_USE_MAGMA_DDGEMM)
+		target_compile_definitions(mamul1 PUBLIC USE_MAGMA_DGEMM)
 	elseif( MAMUL1_MAGMA_API STREQUAL "GPU_MEM_API" )
-		target_compile_definitions(mamul1 PUBLIC MAMUL1_USE_MAGMA_DGEMM_GPU)
+		target_compile_definitions(mamul1 PUBLIC USE_MAGMA_DGEMM_GPU)
 	else()
 		message(FATAL_ERROR "unexpected value for MAMUL1_MAGMA_API : ${MAMUL1_MAGMA_API}")
 	endif()
+	message(STATUS "MAGMA_INCLUDES=${MAGMA_INCLUDES}")
+	include_directories("${MAGMA_INCLUDES}")
 	target_link_libraries(mamul1 "${MAGMA_LIBRARIES}")
 else()
 	find_package( BLAS REQUIRED )
