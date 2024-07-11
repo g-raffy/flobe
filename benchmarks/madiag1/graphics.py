@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import numpy
 import matplotlib.pyplot as plt
+from pathlib import Path
 import abc
 
 
@@ -131,10 +132,32 @@ def plot_load_to_diag_perf():
     return figures
 
 
+def create_matsize_to_diag_perf_plot() -> plt.Figure:
+    tsv_file = Path('measurements/fr.univ-rennes1.ipr.physix/diag_bench.tsv')
+    # config	num_cores	num_gpu	matrix_size	cpu(s)	gpu_mem_stage1(MiB)	gpu_mem_stage2(MiB)
+    table = numpy.genfromtxt(tsv_file, dtype=("|U10", int, int, int, float, float), names=True, delimiter='\t', usecols=(0, 1, 2, 3, 4))
+    print(table.dtype.names)
+    fig, ax = plt.subplots()
+    gpu_table = table[table['config'] == 'magma']
+    cpu_table = table[table['config'] == 'mkl_omp']
+    ax.plot(gpu_table['matrix_size'], gpu_table['cpus'], 'o-', label='magmaf_dsyevd_gpu on nvidia p100')
+    ax.plot(cpu_table['matrix_size'], cpu_table['cpus'], 'o-', label='mkl 2020.0.1 dsyevd on 4 18-core xeon 6154')
+    # ax.scatter(x=gpu_table['matrix_size'], y=gpu_table['cpus'], label='magmaf_dsyevd_gpu on nvidia p100')
+    # ax.scatter(x=cpu_table['matrix_size'], y=cpu_table['cpus'], label='mkl 2020.0.1 dsyevd on 4 18-core xeon 6154')
+    plt.xlabel('n: matrix size (n*n matrix)')
+    plt.ylabel('duration of the diagonalization (s)')
+    plt.title('performance of matrix diagonalization')
+    ax.legend()
+    return fig
+
+
 if __name__ == '__main__':
     figure_handler = SvgFigureHandler(out_svg_dir_path='./graphics')
     # figure_handler = ScreenFigureHandler()
-    figures = plot_load_to_diag_perf()
-    for fig in figures:
-        figure_handler.on_figure_ended(fig)
+    # figures = plot_load_to_diag_perf()
+    # for fig in figures:
+    #     figure_handler.on_figure_ended(fig)
+
+    fig = create_matsize_to_diag_perf_plot()
+    figure_handler.on_figure_ended(fig)
     figure_handler.on_finalize()

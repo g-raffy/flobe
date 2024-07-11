@@ -5,7 +5,9 @@ flobe is a tool suite aimed at measuring floating point performance of processor
 tsv files made by hand (running `madiag1_star.bash` without `madiag1_batch.bash`):
 - `benchmarks/madiag1/measurements/fr.univ-rennes1.ipr.physix/diag_bench.tsv`
 - `benchmarks/madiag1/measurements/fr.univ-rennes1.ipr.physix/diag_mkl_bench.tsv`
-- `benchmarks/madiag1/measurements/fr.univ-rennes1.ipr.physix/dsyev_bench.tsv`
+- [file://./benchmarks/madiag1/measurements/fr.univ-rennes1.ipr.physix/dsyev_bench.tsv]
+	- 19106.00 measure made on 28/06/2021 with `graffy@physix90:/opt/ipr/cluster/work.local/graffy/bug3177$ time ./diag_mkl_omp 32000`
+	- apparently made with 
 - `benchmarks/madiag1/measurements/fr.univ-rennes1.ipr.physix/multi_diag_mkl_omp.tsv`
 
 ## how to use
