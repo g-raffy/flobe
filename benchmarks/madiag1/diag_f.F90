@@ -1,4 +1,4 @@
-#define MADIAG1_VERSION "1.0.0"
+#define MADIAG1_VERSION "1.0.1"
 subroutine print_usage(prog_path)
     character(len=*), intent(in) :: prog_path
     write(6,'("madiag1 v",a,": benchmark that performs a square matrix diaginalization in double precision, using eigen vectors")') MADIAG1_VERSION;
@@ -9,56 +9,54 @@ subroutine print_usage(prog_path)
 end subroutine
 
 program diag
-
-implicit none
-
-
-integer :: argc, info, ndim, num_loops
-
-character(len=8) :: arg0, arg1, arg2
+    implicit none
 
 
-call get_command_argument(0,arg0)
+    integer :: argc, info, ndim, num_loops
 
-argc = command_argument_count()
-if (argc /= 2) then
-    call print_usage(trim(arg0))
+    character(len=8) :: arg0, arg1, arg2
+
+
+    call get_command_argument(0,arg0)
+
+    argc = command_argument_count()
+    if (argc /= 2) then
+        call print_usage(trim(arg0))
+        stop
+    end if
+
+    call get_command_argument(1,arg1,status=info)
+    if (info /= 0) then
+        write(6,'("Error reading argument: info = ",i2)') info
+        call print_usage(trim(arg0))
     stop
-end if
+    end if
 
-call get_command_argument(1,arg1,status=info)
-if (info /= 0) then
-    write(6,'("Error reading argument: info = ",i2)') info
-    call print_usage(trim(arg0))
-stop
-end if
+    call get_command_argument(2,arg2,status=info)
+    if (info /= 0) then
+        write(6,'("Error reading argument: info = ",i2)') info
+        call print_usage(trim(arg0))
+    stop
+    end if
 
-call get_command_argument(2,arg2,status=info)
-if (info /= 0) then
-    write(6,'("Error reading argument: info = ",i2)') info
-    call print_usage(trim(arg0))
-stop
-end if
+    read(arg1,*,iostat=info) ndim
+    if (info /= 0) then
+        write(6,'("Error converting ndim argument to integer: info = ",i2)') info
+        call print_usage(trim(arg0))
+    stop
+    end if
 
-read(arg1,*,iostat=info) ndim
-if (info /= 0) then
-    write(6,'("Error converting ndim argument to integer: info = ",i2)') info
-    call print_usage(trim(arg0))
-stop
-end if
+    read(arg2,*,iostat=info) num_loops
+    if (info /= 0) then
+        write(6,'("Error converting num_loops argument to integer: info = ",i2)') info
+        call print_usage(trim(arg0))
+    stop
+    end if
 
-read(arg2,*,iostat=info) num_loops
-if (info /= 0) then
-    write(6,'("Error converting num_loops argument to integer: info = ",i2)') info
-    call print_usage(trim(arg0))
-stop
-end if
-
-
-if (ndim < 1) then
-    call print_usage(trim(arg0))
-stop
-end if
+    if (ndim < 1) then
+        call print_usage(trim(arg0))
+    stop
+    end if
 
     call test_dsyev(ndim, num_loops)
 
@@ -74,7 +72,7 @@ module mod_diag
     !output: amat(ndim,ndim) = orthonormal eigenvectors of amat           !
     !        eig(ndim) = eigenvalues of amat in ascending order     !
     !---------------------------------------------------------!
-subroutine diagonalize(amat, ndim, evalues, info)
+subroutine diagonalize(amat, ndim, evalues, dsyevd_status)
 #if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
     use magma
  !    use magma_param
@@ -87,7 +85,7 @@ subroutine diagonalize(amat, ndim, evalues, info)
     real(dp), allocatable :: amat(:,:)
     integer, intent(in) :: ndim
     real(dp), allocatable :: evalues(:)
-    integer, intent(out) :: info
+    integer, intent(out) :: dsyevd_status
 
     real(dp), allocatable :: work(:)
     integer :: lwork
@@ -107,15 +105,11 @@ subroutine diagonalize(amat, ndim, evalues, info)
     character :: jobz
 
     if (compute_eigenvectors) then
-        jobz = 'v' ! novec
+        jobz = 'v' ! vec
     else
-        jobz = 'n' ! vec
+        jobz = 'n' ! novec
     endif
 
-#if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
-    call magmaf_init()
-#endif
-    
 #if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
     ! NB can be obtained through magma_get_dsytrd_nb(N).
     ! nb = magma_get_dsytrd_nb(ndim)
@@ -218,11 +212,11 @@ subroutine diagonalize(amat, ndim, evalues, info)
 #endif
 
 #if defined(USE_MAGMA_DSYEVD_GPU)
-    call magmaf_dsyevd_gpu (jobz, 'u', ndim, d_amat, lda, evalues, wa, lda, work, lwork, iwork, liwork, info)
+    call magmaf_dsyevd_gpu (jobz, 'u', ndim, d_amat, lda, evalues, wa, lda, work, lwork, iwork, liwork, dsyevd_status)
 #endif
 
 #ifdef USE_MAGMA_DSYEVD
-    call magmaf_dsyevd (jobz, 'u', ndim, amat, ndim, evalues, work, lwork, iwork, liwork, info)
+    call magmaf_dsyevd (jobz, 'u', ndim, amat, ndim, evalues, work, lwork, iwork, liwork, dsyevd_status)
 #endif
 
 #ifdef USE_DSYEV
@@ -237,18 +231,14 @@ subroutine diagonalize(amat, ndim, evalues, info)
     !            integer         LWORK,
     !            integer         INFO 
     !    )               
-    call dsyev (jobz,'u',ndim,amat,ndim,evalues,work,lwork,info)
+    call dsyev (jobz,'u',ndim,amat,ndim,evalues,work,lwork,dsyevd_status)
 #endif
 
-    if (info .ne. 0) then
+    if (dsyevd_status .ne. 0) then
         stop 1
     end if
 
     deallocate(work)
-
-#if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
-    call magmaf_finalize()
-#endif
 
 end subroutine diagonalize
 
@@ -267,29 +257,38 @@ end subroutine
 
 subroutine test_dsyev(ndim, num_loops)
     use mod_diag, only: diagonalize
+#if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
+    use magma
+#endif
     implicit none
     integer, intent(in) :: ndim
     integer, intent(in) :: num_loops
     integer, parameter :: dp = kind(1.0d0)
-    real :: tstart, tstop
+    real :: start_time_cpu, stop_time_cpu
+    real :: diag_duration  ! duration of the diagonalisations in seconds (aka as system time)
+    real :: diag_cpu_usage  ! how much cpu has been used by the diagonalization (aka cpu_time), in cores.second
 
-    INTEGER :: c1,c2,cr,cm,s
-    REAL :: a_diff, diff, rate
+    INTEGER :: start_system_clock_ticks, stop_system_clock_ticks, cr, cm
+    REAL :: system_clock_rate
 
     real(dp), allocatable :: evalues(:)
     real(dp), allocatable :: amat(:,:),playmat(:,:)
     real(dp) :: x
-    integer :: i, j, info
+    integer :: i, j, dsyevd_status
 
+    write(6,'("madiag1 v",a,": benchmark that performs a square matrix diaginalization in double precision, using eigen vectors")') MADIAG1_VERSION;
+
+#if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
+    call magmaf_init()
+#endif
+    
     ! First initialize the system_clock
     CALL system_clock(count_rate=cr)
     CALL system_clock(count_max=cm)
-    rate = REAL(cr)
-    WRITE(*,*) "system_clock rate ",rate
+    system_clock_rate = REAL(cr)
+    write(*,*) "system_clock rate :", system_clock_rate, " ticks per second"
 
-    diff = 0.0
-    a_diff = 0.0
-    s = 0
+    write(*,*) "initializing a random matrix"
 
     allocate(amat(ndim, ndim))
     allocate(playmat(ndim, ndim))
@@ -310,32 +309,37 @@ subroutine test_dsyev(ndim, num_loops)
     evalues = 0.0_dp
 
 
-    call cpu_time(tstart)
-    call system_clock(c1)
+    write(*,*) "starting ", num_loops, " diagonalizations"
+    call cpu_time(start_time_cpu)
+    call system_clock(start_system_clock_ticks)
 
     do j = 1, num_loops
         playmat = amat
-        call diagonalize(playmat, ndim, evalues, info)
+        call diagonalize(playmat, ndim, evalues, dsyevd_status)
     end do
 
-    call cpu_time(tstop)
-    call system_clock(c2)
-    if ( (c2 - c1)/rate < (tstop - tstart) ) s = s + 1
-    diff = (c2 - c1)/rate - (tstop - tstart) + diff
-    a_diff = ABS((c2 - c1)/rate - (tstop - tstart)) + a_diff
+    call cpu_time(stop_time_cpu)
+    call system_clock(stop_system_clock_ticks)
 
-    write(6,*) 'info = ', info
+    diag_duration = (stop_system_clock_ticks - start_system_clock_ticks)/system_clock_rate
+    diag_cpu_usage = stop_time_cpu - start_time_cpu
+
+    write(6,*) 'dsyevd_status = ', dsyevd_status
     
-    write(6,'("Time taken by dsyev for matrix size ",i8," was ",f10.2," seconds")') ndim, tstop-tstart
+    write(*,*) "evalues(1:10) = "
     write(6,'(10f15.7)') evalues(1:10)
+    write(*,*) "evalues(ndim-9:ndim) = "
     write(6,'(10f15.7)') evalues(ndim-9:ndim)
-    
-    WRITE(*,*) "system_clock : ",(c2 - c1)/rate
-    WRITE(*,*) "cpu_time     : ",(tstop - tstart)
-    WRITE(*,*) "sc < ct      : ",s
-    WRITE(*,*) "mean diff    : ",diff
-    WRITE(*,*) "abs mean diff: ",a_diff
+
+    write(6,'("Time taken by dsyev for ",i0," diagonalisations of matrix size ",i0,":")') num_loops, ndim
+    write(6,'("   - wallclock time: ",f10.2," seconds")') diag_duration
+    write(6,'("   - cpu_time: ",f10.2," core.seconds")') diag_cpu_usage
+    write(6,'("   - number of cpu cores actually used: ",f10.2, " cores")') diag_cpu_usage / diag_duration
 
     deallocate(evalues, amat, playmat)
+
+#if defined(USE_MAGMA_DSYEVD) || defined(USE_MAGMA_DSYEVD_GPU)
+    call magmaf_finalize()
+#endif
+
     end
-     
