@@ -203,3 +203,5 @@
 2024-07-12T19:58:47.638488	alambix98.ipr.univ-rennes.fr	intel-xeon-gold-6248r	2	gfortran-12.2.0	mkl-2023.0.0	48	14000	1	True	171.32	2961.03
 2024-07-12T18:21:57.181686	alambix98.ipr.univ-rennes.fr	intel-xeon-gold-6248r	2	gfortran-12.2.0	mkl-2023.0.0	48	16384	1	False	215.24	1620.18
 2024-07-12T18:27:04.607765	alambix98.ipr.univ-rennes.fr	intel-xeon-gold-6248r	2	gfortran-12.2.0	mkl-2023.0.0	48	16384	1	True	302.29	5954.04
+2024-07-12T20:09:45.973192	alambix98.ipr.univ-rennes.fr	intel-xeon-gold-6248r	2	gfortran-12.2.0	mkl-2023.0.0	48	24000	1	False	652.06	4945.0
+2024-07-12T20:23:12.928140	alambix98.ipr.univ-rennes.fr	intel-xeon-gold-6248r	2	gfortran-12.2.0	mkl-2023.0.0	48	24000	1	True	800.17	11722.25
