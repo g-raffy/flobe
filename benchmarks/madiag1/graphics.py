@@ -133,20 +133,33 @@ def plot_load_to_diag_perf():
 
 
 def create_matsize_to_diag_perf_plot() -> plt.Figure:
-    tsv_file = Path('measurements/fr.univ-rennes1.ipr.physix/diag_bench.tsv')
     # config	num_cores	num_gpu	matrix_size	cpu(s)	gpu_mem_stage1(MiB)	gpu_mem_stage2(MiB)
-    table = numpy.genfromtxt(tsv_file, dtype=("|U10", int, int, int, float, float), names=True, delimiter='\t', usecols=(0, 1, 2, 3, 4))
+    table = numpy.genfromtxt(Path('measurements/fr.univ-rennes1.ipr.physix/diag_bench.tsv'), dtype=("|U10", int, int, int, float, float), names=True, delimiter='\t', usecols=(0, 1, 2, 3, 4))
     print(table.dtype.names)
+
+    # #measurement_time	host_fqdn	cpu_id	num_cpu	compiler_id	blas_id	max_cores	matrix_size	num_loops	with_eigen_vectors	duration	cpu_time
+    table2 = numpy.genfromtxt(Path('../madiag2/measurements/alambix98.ipr.univ-rennes.fr/runbench.tsv'), dtype=("|U30", "|U30", "|U30", int, "|U30", "|U30", int, int, int, bool, float, float), names=True, delimiter='\t', usecols=(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11))
+    print(table2.dtype.names)
+
     fig, ax = plt.subplots()
     gpu_table = table[table['config'] == 'magma']
     cpu_table = table[table['config'] == 'mkl_omp']
+
+    # print(table2)
+    cpu2_table = table2[table2['blas_id'] == 'mkl-2023.0.0']
+    cpu2_table = cpu2_table[cpu2_table['max_cores'] == 48]
+    cpu2_table = cpu2_table[cpu2_table['with_eigen_vectors'] == True]  # noqa
+    print(cpu2_table)
+
+    # cpu2_table = table2[table2['blas_id'] == 'mkl-2023.0.0' and table2['with_eigen_vectors'] == True and table2['max_cores'] == 48]
     ax.plot(gpu_table['matrix_size'], gpu_table['cpus'], 'o-', label='magmaf_dsyevd_gpu on nvidia p100')
     ax.plot(cpu_table['matrix_size'], cpu_table['cpus'], 'o-', label='mkl 2020.0.1 dsyevd on 4 18-core xeon 6154')
+    ax.plot(cpu2_table['matrix_size'], cpu2_table['duration'] / cpu2_table['num_loops'], 'o-', label='mkl 2023.0.0 dsyevd on 2 24-core xeon 6248r')
     # ax.scatter(x=gpu_table['matrix_size'], y=gpu_table['cpus'], label='magmaf_dsyevd_gpu on nvidia p100')
     # ax.scatter(x=cpu_table['matrix_size'], y=cpu_table['cpus'], label='mkl 2020.0.1 dsyevd on 4 18-core xeon 6154')
     plt.xlabel('n: matrix size (n*n matrix)')
-    plt.ylabel('duration of the diagonalization (s)')
-    plt.title('performance of matrix diagonalization')
+    plt.ylabel('duration of the dsyevd computation (s)')
+    plt.title('performance of dsyevd with eigenvectors')
     ax.legend()
     return fig
 
